@@ -25,7 +25,7 @@ for year in years:
     end_date = dt.datetime(year=year,month=end_month,day=end_day)
     day_dt = start_date
     while (day_dt<=end_date):
-        
+        #TODO: fill missing days with nan and give a warning
         #get netcdf
         ds = get_netcdf(varname,day_dt)
         if day_dt == start_date:
