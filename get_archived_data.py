@@ -8,7 +8,7 @@ import numpy as np
 import radlib as rad
 import xarray as xr
 
-username = os.getlogin()
+username = "tschmid" #os.getlogin()
 if os.environ.get("METRANETLIB_PATH") is None:
     os.environ["METRANETLIB_PATH"] = f"/users/{username}/metranet/"
 
@@ -378,13 +378,17 @@ def get_combined_max_radar_grid(product: str, timestamp1: str, timestamp2: str
         temp_date += datetime.timedelta(minutes=5)
         try:
             grid = np.maximum(grid,prepare_gridded_radar_data_from_zip(product=product, timestamp=datetime.datetime.strftime(temp_date,"%Y%m%d%H%M%S")))
-        except:
+        except FileNotFoundError:
             Warning(f'{temp_date} is not in archive. This timestep is skipped')
             print(f'{temp_date} is not in archive. This timestep is skipped')
             skipped_timesteps += 1
-            #Stop execution if more than 10 timesteps are missing
+
+            #If >10 days are missing add a nan-only slice for this day and print a warning
             if skipped_timesteps>10:
-                raise Exception("number of skipped steps is >10. Please check data")
+                grid = np.full((640,710),np.nan)
+                Warning(f'{temp_date}: number of skipped steps is >10. return empty array for this date')
+                print(f'{temp_date} : number of skipped steps is >10. return empty array for this date')
+                break
     return(grid)
 
 def save_multiple_radar_grids(product: str, timestamp1: str, timestamp2: str

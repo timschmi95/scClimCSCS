@@ -10,14 +10,14 @@ import os
 import numpy as np
 import datetime as dt 
 import xarray as xr 
-username = os.getlogin()
+username = 'tschmid' #os.getlogin()
 sys.path.append(f'/users/{username}/scClimCSCS')
 from get_archived_data import get_combined_max_radar_grid,get_netcdf
 
 years = [2016]
 start_month = 4 #4 (convective season April(4) to Sept(9))
-end_month = 4 #9
-end_day = 2 #30
+end_month = 9 #9
+end_day = 30 #30
 varname = 'CZC'
 out_dir = '/scratch/tschmid/data/nc_files'
 for year in years:
@@ -25,9 +25,9 @@ for year in years:
     end_date = dt.datetime(year=year,month=end_month,day=end_day)
     day_dt = start_date
     while (day_dt<=end_date):
-        #TODO: fill missing days with nan and give a warning
         #get netcdf
         ds = get_netcdf(varname,day_dt)
+        
         if day_dt == start_date:
             ds_out = ds
         else:
