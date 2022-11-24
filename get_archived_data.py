@@ -2,10 +2,10 @@ import datetime
 import os
 import re
 from typing import Tuple
-from copy import deepcopy
 from zipfile import ZipFile
 import numpy as np
 import radlib as rad
+import xarray as xr
 from PIL import Image
 
 # username = "tschmid" #os.getlogin()
@@ -41,6 +41,8 @@ RADAR_PRODUCTS = {  # values are filename endings of products
     "TRTC": ".+.trt",
     "YM": ".+.8",
     "ML": ".+.0",
+    "CPCH_5": ".+_00005.801.gif",
+    "CPCH_60": ".+_00060.801.gif",
 }
 
 
@@ -294,6 +296,9 @@ def build_zip_file_paths(
     if product in ["EZC15", "EZC45"]:
         basic_product_name = "EZC"
 
+    if product in ["CPCH_5", "CPCH_60"]:
+        basic_product_name = "CPCH"
+
     # # BZC Analysis Version adds the H
     # if product in ["BZC", "MZC"]: #TODO: add for new version
     #     basic_product_name = product +"H"
@@ -311,14 +316,16 @@ def build_zip_file_paths(
         unzipped_file_name = product[1:] + ydoy_string
 
     else:
-        # HZT is only available for every hour
-        if product == "HZT":
+        # HZT & CPCH_60 is only available for every hour
+        if product in ["HZT", "CPCH_60"]:
             timestamp_obj = timestamp_obj.replace(minute=0)
         # TRT has different naming scheme
         if product == "TRTC":
             unzipped_file_name = "CZC"
         # elif product in ["BZC","MZC"]: #TODO: add for new version
         #     unzipped_file_name = product
+        elif product in ["CPCH_5", "CPCH_60"]:
+            unzipped_file_name = "CPC"
         else:
             unzipped_file_name = basic_product_name
         unzipped_file_name += timestamp_obj.strftime("%y%j%H%M")
@@ -344,7 +351,9 @@ def prepare_gridded_radar_data_from_zip(
 ) -> np.ndarray:
     """Returns the numpy ndarray of a gridded radar product for a given date
     and time. Currently supports 'dBZC','dLZC','dMZC','dCZC','BZC','EZC','MZC'
-    'LZC','RZC','CZC','HZT' but more products can easily be added.
+    'LZC','RZC','CZC','HZT', 'CPCH_5','CPCH_60' but more products can easily be added.
+    CPCH_60 & HZT will default to the minute 0 of the hour. 
+    An input of 15.55 will return the value for the hour 15:00
     Product description is available in Confluence
     (https://service.meteoswiss.ch/confluence/display/CRS/Operational+Radar).
 
@@ -394,7 +403,7 @@ def prepare_gridded_radar_data_from_zip(
         print("File doesnt exist: ")
         print(file_path_out)
 
-    if product in ["CPC_5", "CPC_60"]:
+    if product in ["CPCH_5", "CPCH_60"]:
         # CPC files are in gif format, they need a different reading routine
         values = read_cpc_file(filepath=file_path_out)
     else:
@@ -414,7 +423,7 @@ def prepare_gridded_radar_data_from_zip(
             values = np.flipud(values)"""
         # TODO: add this part to martins code too
     # Remove files from temp_dir
-    os.remove(file_path_out)
+    os.remove(file_path_out)  
     return values
 
 
@@ -491,8 +500,11 @@ def save_multiple_radar_grids(
         )
 
 
-if __name__ == "__main__":
-    grid = prepare_gridded_radar_data_from_zip(
-        product="BZC", timestamp="20210628155500"
-    )
-    print(np.unique(grid))
+# if __name__ == "__main__":
+#     grid = prepare_gridded_radar_data_from_zip(
+#         product="CPCH_5", timestamp="20210628155500"
+#     )
+#     print(np.unique(grid))
+
+# # if product in ["CPCH_5", "CPCH_60"]:
+# #     quality_code_cpc = int(file_path_out.split("/")[-1].split("_")[0][-1])
