@@ -6,9 +6,10 @@ from copy import deepcopy
 from zipfile import ZipFile
 import numpy as np
 import radlib as rad
-import xarray as xr
+from PIL import Image
 
-username = "tschmid" #os.getlogin()
+#username = "tschmid" #os.getlogin()
+username = "maregger"
 if os.environ.get("METRANETLIB_PATH") is None:
     os.environ["METRANETLIB_PATH"] = f"/users/{username}/metranet/"
 
@@ -16,7 +17,10 @@ if os.environ.get("METRANETLIB_PATH") is None:
 BASE_DIR_RADAR = "/store/msrad/radar/swiss/data/" #on MCH servers: "/repos/repos_prod/radar/swiss" 
 TEMP_ZIP_DIR = f"/scratch/{username}/zip_temp_dir"
 TEMP_GRID_DIR = f"/scratch/{username}/grid_temp_dir"
+
+#TODO: Properly solve the situation with the necessary files within the repository
 MCH_NC_EXAMPLE = f"/users/{username}/data/config_files/MZC_example.nc"
+CPC_LUT_PATH = "/users/maregger/PhD/lut/"
 
 
 RADAR_PRODUCTS = { # values are filename endings of products
@@ -49,6 +53,42 @@ projection_dict= {
   "units": "m",
   "no_defs": ""
 }
+
+
+def read_cpc_file(filepath: str,lut: str="medium") -> np.ndarray:
+    """Reads the given CPC gif file and converts the 8-bit values into mm/h.
+    The conversion is done using Look-up-tables which are currently stored in
+    three seperate .npy files. The LUTs were generated from the values given on
+    the CPC confluence page
+    (https://service.meteoswiss.ch/confluence/display/CRS/CombiPrecip). 
+    They are valid for CPC version 3.5 and newer. For CPC there is always a
+    minimum, medium, and maximum estimation available. The respective LUT
+    can be chosen in the "lut argument
+
+    Args:
+        filepath (str): Path of the CPC gif file which shall be read.
+        lut (str, optional): Possibility to select either the minimum,
+        medium or maximum value for CPC. Defaults to "medium".
+
+    Raises:
+        ValueError: This error is raised if an invalid lut name is given
+
+    Returns:
+        ndarray: array containing CPC values in mm/h
+    """
+    image = Image.open(filepath)
+    if lut == "medium":
+        lut = np.load("/users/maregger/PhD/lut/cpc_lut_minimum.npy")
+    elif lut == "minimum":
+        lut = np.load("/users/maregger/PhD/lut/cpc_lut_minimum.npy")
+    elif lut == "maximum":
+        lut = np.load("/users/maregger/PhD/lut/cpc_lut_maximum.npy")
+    else:
+        raise ValueError("Invalid CPC Lut selected")
+    
+    image = lut[image]
+    
+    return image
 
 def get_netcdf(varname, date):
     """gets netcdf file for specific hailday (6UTC to 6UTC)
@@ -350,21 +390,26 @@ def prepare_gridded_radar_data_from_zip(
     if not os.path.exists(file_path_out):
         print('File doesnt exist: ')
         print(file_path_out)
-    if reader == "C":
-        values = rad.read_file(file=file_path_out, physic_value=True).data
-    if reader == "Python":
-        raise NotImplementedError(
-            "The Python version of the metranet reader \
-            is not yet implemented."
-        )
-        """  radar_object = read_cartesian_metranet(
-            filename=file_path_out, reader="python"
-        )
-        print(radar_object.fields.keys())
-        # TO-DO: not yet working correctly needs to be adapted
-        values = np.squeeze(radar_object.fields["probability_of_hail"]["data"])
-        values = np.flipud(values)"""
-    #TODO: add this part to martins code too
+        
+    if product in ["CPC_5", "CPC_60"]:
+        #CPC files are in gif format, they need a different reading routine
+        values = read_cpc_file(filepath=file_path_out)
+    else:
+        if reader == "C":
+            values = rad.read_file(file=file_path_out, physic_value=True).data
+        if reader == "Python":
+            raise NotImplementedError(
+                "The Python version of the metranet reader \
+                is not yet implemented."
+            )
+            """  radar_object = read_cartesian_metranet(
+                filename=file_path_out, reader="python"
+            )
+            print(radar_object.fields.keys())
+            # TO-DO: not yet working correctly needs to be adapted
+            values = np.squeeze(radar_object.fields["probability_of_hail"]["data"])
+            values = np.flipud(values)"""
+        #TODO: add this part to martins code too
     #Remove files from temp_dir
     os.remove(file_path_out)
     return values
@@ -412,3 +457,8 @@ def save_multiple_radar_grids(product: str, timestamp1: str, timestamp2: str
         temp_timestamp = datetime.datetime.strftime(temp_date,"%Y%m%d%H%M%S")
         grid = prepare_gridded_radar_data_from_zip(product=product, timestamp=temp_timestamp)
         np.save('/scratch/%s/data/subdaily_npy/%s_%s.npy'%(username,product,temp_timestamp),grid)
+
+
+if __name__ == "__main__":
+    grid = prepare_gridded_radar_data_from_zip(product="BZC", timestamp="20210628155500")
+    print(np.unique(grid))
