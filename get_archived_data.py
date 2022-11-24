@@ -288,13 +288,11 @@ def build_zip_file_paths(
     if product[0:2] in ["YM", "ML"]:
         unzipped_file_name += str(radar_elevation).zfill(2)
 
-    #add wildcard for CZC values (because in 2008 all files
+    #add wildcard forfile path (because in 2008 all files
     #are stored in a subfolder for CZC)
-    if product == 'CZC':
-        unzipped_file_name = '.*'+unzipped_file_name
+    unzipped_file_name = '.*'+unzipped_file_name
 
     filename_pattern = re.compile(unzipped_file_name)
-    #print(zipfile_path)
     return zipfile_path, unzipped_file_path, filename_pattern
 
 
