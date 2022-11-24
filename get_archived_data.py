@@ -423,7 +423,7 @@ def prepare_gridded_radar_data_from_zip(
             values = np.flipud(values)"""
         # TODO: add this part to martins code too
     # Remove files from temp_dir
-    os.remove(file_path_out)  
+    os.remove(file_path_out)
     return values
 
 
@@ -498,12 +498,9 @@ def save_multiple_radar_grids(
             % (username, product, temp_timestamp),
             grid,
         )
-        
-        
-        
 
-def get_cpc_quality_code(
-    product: str, timestamp: str) -> int:
+
+def get_cpc_quality_code(product: str, timestamp: str) -> int:
     """Returns the quality code which is stored in the filnames of the 
     CPCH_5 and CPCH_60 files
 
@@ -552,19 +549,6 @@ def get_cpc_quality_code(
         print(file_path_out)
 
     quality_code_cpc = int(file_path_out.split("/")[-1].split("_")[0][-1])
-    
-    os.remove(file_path_out)  
+
+    os.remove(file_path_out)
     return quality_code_cpc
-
-
-if __name__ == "__main__":
-    grid = prepare_gridded_radar_data_from_zip(
-        product="CPCH_5", timestamp="20210628155500"
-    )
-
-    print(get_cpc_quality_code(
-        product="CPCH_5", timestamp="20210628155500"
-    ))
-
-# # if product in ["CPCH_5", "CPCH_60"]:
-# #     quality_code_cpc = int(file_path_out.split("/")[-1].split("_")[0][-1])
