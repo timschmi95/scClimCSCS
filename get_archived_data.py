@@ -498,13 +498,73 @@ def save_multiple_radar_grids(
             % (username, product, temp_timestamp),
             grid,
         )
+        
+        
+        
+
+def get_cpc_quality_code(
+    product: str, timestamp: str) -> int:
+    """Returns the quality code which is stored in the filnames of the 
+    CPCH_5 and CPCH_60 files
 
 
-# if __name__ == "__main__":
-#     grid = prepare_gridded_radar_data_from_zip(
-#         product="CPCH_5", timestamp="20210628155500"
-#     )
-#     print(np.unique(grid))
+    Parameters
+    ----------
+    product : str
+        One of the supported product types e.g. 'dBZC'
+    timestamp : str
+        timestamp of requested file in the format "20190701233000"
+    reader : str, optional
+
+
+    Returns
+    -------
+    ndarray
+        A ndarray containing the radar data grid.
+
+    Raises
+    ------
+    ValueError
+        If the timestamp has an invalid format.
+    FileNotFoundError
+        If there is no file available for the requested parameter combination.
+
+    """
+    # creating timestamp from input
+    if isinstance(timestamp, str) is False:
+        raise ValueError("Timestamp is not valid!")
+    if len(timestamp) != 14:
+        raise ValueError("Timestamp is not valid!")
+    if product not in ["CPCH_5", "CPCH_60"]:
+        raise ValueError("Unsupported Product")
+
+    zipfile_path, unzipped_file_path, filename_pattern = build_zip_file_paths(
+        timestamp, product
+    )
+
+    file_path_out = unzip_radar_files(
+        zipfile_path, unzipped_file_path, filename_pattern
+    )
+
+    # read the numpy ndarray from the file
+    if not os.path.exists(file_path_out):
+        print("File doesnt exist: ")
+        print(file_path_out)
+
+    quality_code_cpc = int(file_path_out.split("/")[-1].split("_")[0][-1])
+    
+    os.remove(file_path_out)  
+    return quality_code_cpc
+
+
+if __name__ == "__main__":
+    grid = prepare_gridded_radar_data_from_zip(
+        product="CPCH_5", timestamp="20210628155500"
+    )
+
+    print(get_cpc_quality_code(
+        product="CPCH_5", timestamp="20210628155500"
+    ))
 
 # # if product in ["CPCH_5", "CPCH_60"]:
 # #     quality_code_cpc = int(file_path_out.split("/")[-1].split("_")[0][-1])
