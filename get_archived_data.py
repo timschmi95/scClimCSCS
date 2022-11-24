@@ -371,16 +371,22 @@ def get_combined_max_radar_grid(product: str, timestamp1: str, timestamp2: str
 
     start_date = datetime.datetime.strptime(timestamp1, "%Y%m%d%H%M%S")
     end_date = datetime.datetime.strptime(timestamp2, "%Y%m%d%H%M%S")
-    grid = prepare_gridded_radar_data_from_zip(product=product, timestamp=timestamp1)
-    temp_date = start_date
+    temp_date = start_date - datetime.timedelta(minutes=5) #ensure starting at first timestep
     skipped_timesteps = 0
     while temp_date < end_date:
         temp_date += datetime.timedelta(minutes=5)
         try:
-            grid = np.maximum(grid,prepare_gridded_radar_data_from_zip(product=product, timestamp=datetime.datetime.strftime(temp_date,"%Y%m%d%H%M%S")))
-        except FileNotFoundError:
-            Warning(f'{temp_date} is not in archive. This timestep is skipped')
-            print(f'{temp_date} is not in archive. This timestep is skipped')
+            if 'grid' in locals():
+                grid = np.maximum(grid,prepare_gridded_radar_data_from_zip(product=product, timestamp=datetime.datetime.strftime(temp_date,"%Y%m%d%H%M%S")))
+            else:
+                grid = prepare_gridded_radar_data_from_zip(product=product, timestamp=datetime.datetime.strftime(temp_date,"%Y%m%d%H%M%S"))
+                
+        except (AttributeError, FileNotFoundError) as err:
+            #AttributeError: 'NoneType' object has no attribute 'data' (): 
+                # in prepare_gridded_radar_data_from_zip ->rad.read_file --> file cannot be read 
+            #FileNotFoundError: File is not in archive
+            Warning(f'{temp_date} is not in archive (or not readable). This timestep is skipped')
+            print(f'{temp_date} is not in archive (or not readable). This timestep is skipped')
             skipped_timesteps += 1
 
             #If >10 days are missing add a nan-only slice for this day and print a warning
