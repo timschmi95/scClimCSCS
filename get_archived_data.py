@@ -288,6 +288,11 @@ def build_zip_file_paths(
     if product[0:2] in ["YM", "ML"]:
         unzipped_file_name += str(radar_elevation).zfill(2)
 
+    #add wildcard for CZC values (because in 2008 all files
+    #are stored in a subfolder for CZC)
+    if product == 'CZC':
+        unzipped_file_name = '.*'+unzipped_file_name
+
     filename_pattern = re.compile(unzipped_file_name)
     #print(zipfile_path)
     return zipfile_path, unzipped_file_path, filename_pattern
@@ -383,7 +388,7 @@ def get_combined_max_radar_grid(product: str, timestamp1: str, timestamp2: str
                 
         except (AttributeError, FileNotFoundError) as err:
             #AttributeError: 'NoneType' object has no attribute 'data' (): 
-                # in prepare_gridded_radar_data_from_zip ->rad.read_file --> file cannot be read 
+            # in prepare_gridded_radar_data_from_zip ->rad.read_file --> file cannot be read 
             #FileNotFoundError: File is not in archive
             Warning(f'{temp_date} is not in archive (or not readable). This timestep is skipped')
             print(f'{temp_date} is not in archive (or not readable). This timestep is skipped')
