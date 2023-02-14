@@ -7,9 +7,10 @@ import numpy as np
 import radlib as rad
 import xarray as xr
 from PIL import Image
+import warnings
 
 # username = "tschmid" #os.getlogin()
-username = "maregger"
+username = "tschmid"
 if os.environ.get("METRANETLIB_PATH") is None:
     os.environ["METRANETLIB_PATH"] = f"/users/{username}/metranet/"
 
@@ -26,14 +27,14 @@ CPC_LUT_PATH = "/users/maregger/PhD/lut/"
 
 
 RADAR_PRODUCTS = {  # values are filename endings of products
-    "dBZC": "2400.+.845",
-    "dLZC": "2400.+.801",
-    "dMZC": "2400.+.850",
+    "dBZC": "2400.+.845",   #daily POH
+    "dLZC": "2400.+.801", 
+    "dMZC": "2400.+.850",   #daily MESHS
     "dCZC": "2400.+.801",
-    "BZC": ".+.845",
+    "BZC": ".+.845",        #POH
     "EZC15": ".+.815",
     "EZC45": ".+.845",
-    "MZC": ".+.850",
+    "MZC": ".+.850",        #MESHS
     "LZC": ".+.801",
     "RZC": ".+.801",
     "CZC": ".+.801",
@@ -300,8 +301,8 @@ def build_zip_file_paths(
         basic_product_name = "CPCH"
 
     # # BZC Analysis Version adds the H
-    # if product in ["BZC", "MZC"]: #TODO: add for new version
-    #     basic_product_name = product +"H"
+    if product in ["BZC", "MZC"]:
+        basic_product_name = product +"H"
 
     file_name = basic_product_name + ydoy_string
     file_name += ".zip"
@@ -310,7 +311,7 @@ def build_zip_file_paths(
     zipfile_path += str(timestamp_obj.year) + "/"
     zipfile_path += ydoy_string + "/"
     zipfile_path += file_name
-
+    # print(zipfile_path)
     # Select the correct file ending
     if product in ("dBZC", "dMZC", "dCZC", "dLZC", "dEZC"):
         unzipped_file_name = product[1:] + ydoy_string
@@ -322,8 +323,8 @@ def build_zip_file_paths(
         # TRT has different naming scheme
         if product == "TRTC":
             unzipped_file_name = "CZC"
-        # elif product in ["BZC","MZC"]: #TODO: add for new version
-        #     unzipped_file_name = product
+        elif product in ["BZC","MZC"]:
+            unzipped_file_name = product
         elif product in ["CPCH_5", "CPCH_60"]:
             unzipped_file_name = "CPC"
         else:
@@ -431,6 +432,9 @@ def get_combined_max_radar_grid(
     product: str, timestamp1: str, timestamp2: str
 ) -> np.ndarray:
 
+    if product in ["MZC","BZC"]:
+        warnings.warn(f"by default {product}H will be used, which uses the 0C-line from the Analysis")
+
     start_date = datetime.datetime.strptime(timestamp1, "%Y%m%d%H%M%S")
     end_date = datetime.datetime.strptime(timestamp2, "%Y%m%d%H%M%S")
     temp_date = start_date - datetime.timedelta(
@@ -458,22 +462,15 @@ def get_combined_max_radar_grid(
             # AttributeError: 'NoneType' object has no attribute 'data' ():
             # in prepare_gridded_radar_data_from_zip ->rad.read_file --> file cannot be read
             # FileNotFoundError: File is not in archive
-            Warning(
-                f"{temp_date} is not in archive (or not readable). This timestep is skipped"
-            )
-            print(
+            warnings.warn(
                 f"{temp_date} is not in archive (or not readable). This timestep is skipped"
             )
             skipped_timesteps += 1
-
             # If >10 days are missing add a nan-only slice for this day and print a warning
             if skipped_timesteps > 10:
                 grid = np.full((640, 710), np.nan)
-                Warning(
+                warnings.warn(
                     f"{temp_date}: number of skipped steps is >10. return empty array for this date"
-                )
-                print(
-                    f"{temp_date} : number of skipped steps is >10. return empty array for this date"
                 )
                 break
     return grid
@@ -482,6 +479,9 @@ def get_combined_max_radar_grid(
 def save_multiple_radar_grids(
     product: str, timestamp1: str, timestamp2: str
 ) -> np.ndarray:
+
+    if product in ["MZC","BZC"]:
+        warnings.warn(f"by default {product}H will be used, which uses the 0C-line from the Analysis")
 
     start_date = datetime.datetime.strptime(timestamp1, "%Y%m%d%H%M%S")
     end_date = datetime.datetime.strptime(timestamp2, "%Y%m%d%H%M%S")
