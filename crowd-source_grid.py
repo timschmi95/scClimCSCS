@@ -9,7 +9,8 @@ from scipy import sparse
 import pandas as pd
 import copy
 import warnings
-
+from pyproj import Proj
+import cartopy.crs as ccrs
 
 
 
@@ -169,4 +170,15 @@ def grid_crowd_source(crowd_source_data,pop_path,date_sel='20210628',kernel_size
             ds_all = ds.copy(deep=True)
         else:
             ds_all = xr.concat([ds_all, ds], dim='time')
+            
+    ##get lat lon (testing)
+    projdef = ccrs.epsg(2056)#.proj4_init
+    projdef
+    #create meshgrid
+    meshX,meshY = np.meshgrid(ds_all.chx, ds_all.chy)
+    p = Proj(projdef)
+    lon, lat = p(meshX,meshY, inverse=True)
+    ds_all=ds_all.assign_coords({'lon':(('chy','chx'),lon)})
+    ds_all=ds_all.assign_coords({'lat':(('chy','chx'),lat)})
+    
     return ds_all
