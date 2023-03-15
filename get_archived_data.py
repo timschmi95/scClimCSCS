@@ -44,6 +44,9 @@ RADAR_PRODUCTS = {  # values are filename endings of products
     "ML": ".+.0",
     "CPCH_5": ".+_00005.801.gif",
     "CPCH_60": ".+_00060.801.gif",
+    "OZC": ".+.820", #810=1km CAPPI, 820 = 2km CAPPI
+    "E_kin" : ".+.820" #E_kin, based on Waldvogel (1978), with CAPPI at 2km
+    #Note: Waldvogel 1978 was originally calibrated to S-Band
 }
 
 
@@ -111,8 +114,11 @@ def get_netcdf(varname, date):
     date_p_1 = date + datetime.timedelta(days=1)
     tstamp1 = date.strftime("%Y%m%d") + "060000"
     tstamp2 = date_p_1.strftime("%Y%m%d") + "060000"
-
-    npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2)
+    if varname == 'E_kin':
+        #For E_kin sum up rather than use the maximum
+        npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2,agg_method='sum')
+    else:
+        npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2)
     ds_out = npy_to_netcdf(npy_arr, varname, date)
     return ds_out
 
@@ -300,6 +306,9 @@ def build_zip_file_paths(
     if product in ["CPCH_5", "CPCH_60"]:
         basic_product_name = "CPCH"
 
+    if product == 'E_kin':
+        basic_product_name = "OZC" #CAPPI of Z
+
     # # BZC Analysis Version adds the H
     if product in ["BZC", "MZC"]:
         basic_product_name = product +"H"
@@ -327,6 +336,8 @@ def build_zip_file_paths(
             unzipped_file_name = product
         elif product in ["CPCH_5", "CPCH_60"]:
             unzipped_file_name = "CPC"
+        elif product == 'E_kin':
+            unzipped_file_name = 'OZC'
         else:
             unzipped_file_name = basic_product_name
         unzipped_file_name += timestamp_obj.strftime("%y%j%H%M")
@@ -423,13 +434,25 @@ def prepare_gridded_radar_data_from_zip(
             values = np.squeeze(radar_object.fields["probability_of_hail"]["data"])
             values = np.flipud(values)"""
         # TODO: add this part to martins code too
+
+    #calculate E_kin according to waldvogel 1978, and Hohl (2002) (https://doi.org/10.1016/S0169-8095(02)00059-5)
+    if product == 'E_kin':
+        #get Z from dBZ
+        Z = 10**(values/10)
+        #Z = Z0*10**(dBZ/10), with Z0=1mm6/m3
+
+        # values=Z
+        values = 5e-6*Z**0.84 * 5 * 3600
+        #E [J/m2/s] = 5e6*Z^0.84
+        #E (5min sum) = E * 3600*5
+
     # Remove files from temp_dir
     os.remove(file_path_out)
     return values
 
 
 def get_combined_max_radar_grid(
-    product: str, timestamp1: str, timestamp2: str
+    product: str, timestamp1: str, timestamp2: str, agg_method: str='max',
 ) -> np.ndarray:
 
     if product in ["MZC","BZC"]:
@@ -445,13 +468,13 @@ def get_combined_max_radar_grid(
         temp_date += datetime.timedelta(minutes=5)
         try:
             if "grid" in locals():
-                grid = np.maximum(
-                    grid,
-                    prepare_gridded_radar_data_from_zip(
-                        product=product,
-                        timestamp=datetime.datetime.strftime(temp_date, "%Y%m%d%H%M%S"),
-                    ),
-                )
+                grid_new = prepare_gridded_radar_data_from_zip(
+                    product=product,
+                    timestamp=datetime.datetime.strftime(temp_date, "%Y%m%d%H%M%S"))
+                if agg_method == 'max':
+                    grid = np.maximum(grid,grid_new)
+                elif agg_method == 'sum':
+                    grid = np.add(grid,grid_new)
             else:
                 grid = prepare_gridded_radar_data_from_zip(
                     product=product,
