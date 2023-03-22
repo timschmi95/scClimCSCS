@@ -442,9 +442,9 @@ def prepare_gridded_radar_data_from_zip(
         #Z = Z0*10**(dBZ/10), with Z0=1mm6/m3
 
         # values=Z
-        values = 5e-6*Z**0.84 * 5 * 3600
+        values = 5e-6*Z**0.84 * 5 * 60
         #E [J/m2/s] = 5e6*Z^0.84
-        #E (5min sum) = E * 3600*5
+        #E (5min sum) = E * 60*5
 
     # Remove files from temp_dir
     os.remove(file_path_out)

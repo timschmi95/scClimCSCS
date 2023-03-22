@@ -3,7 +3,7 @@
 #SBATCH --account="msrad"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=timo.schmid@usys.ethz.ch
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=12
