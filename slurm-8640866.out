@@ -1,0 +1,4 @@
+  File "/users/tschmid/scClimCSCS/nc_from_metranet.py", line 14
+    sys.path.append(f'/users/{username}/scClimCSCS')
+                                                  ^
+SyntaxError: invalid syntax
