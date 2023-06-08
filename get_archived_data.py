@@ -28,7 +28,7 @@ CPC_LUT_PATH = "/users/maregger/PhD/lut/"
 
 RADAR_PRODUCTS = {  # values are filename endings of products
     "dBZC": "2400.+.845",   #daily POH
-    "dLZC": "2400.+.801", 
+    "dLZC": "2400.+.801",   #vertically integrated liquid
     "dMZC": "2400.+.850",   #daily MESHS
     "dCZC": "2400.+.801",
     "BZC": ".+.845",        #POH

@@ -18,7 +18,7 @@ years = np.arange(2013,2022+1)#[2020]#
 start_month = 4 #4 (convective season April(4) to Sept(9))
 end_month = 9 #9
 end_day = 30 #30
-varname = 'E_kin'
+varname = 'dLZC'
 out_dir = '/scratch/tschmid/data/nc_files'
 for year in years:
     start_date = dt.datetime(year=year,month=start_month,day=1)
