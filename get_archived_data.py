@@ -69,7 +69,7 @@ def read_cpc_file(filepath: str, lut: str = "medium") -> np.ndarray:
     The conversion is done using Look-up-tables which are currently stored in
     three seperate .npy files. The LUTs were generated from the values given on
     the CPC confluence page
-    (https://service.meteoswiss.ch/confluence/display/CRS/CombiPrecip). 
+    (https://service.meteoswiss.ch/confluence/display/CRS/CombiPrecip).
     They are valid for CPC version 3.5 and newer. For CPC there is always a
     minimum, medium, and maximum estimation available. The respective LUT
     can be chosen in the "lut argument
@@ -105,7 +105,7 @@ def get_netcdf(varname, date):
 
     Args:
         varname (str): 3-letter description of metranet radar_variable
-        date (datetime.datetime): date 
+        date (datetime.datetime): date
 
     Returns:
         ds_out (xr.Dataset): xarray dataset daily maximum values
@@ -131,15 +131,15 @@ def npy_to_netcdf(np_arr, varname, date_dt=None):
     from that dictionary to one netcdf.
 
     Args:
-        np_arr (path,directory, or np.ndarray): 
+        np_arr (path,directory, or np.ndarray):
             path: path to .npy file
             directory: dir which contains .npy files, named as follows:
                 {varname}_%Y%m%d%H%M%S.npy (e.g. MZC_20210630060000.npy)
-            np.ndarray: numpy array 
+            np.ndarray: numpy array
             ..containing a radarvariable with 710x640 gridpoints
-        varname (str): 
+        varname (str):
             MCH metranet radarname (e.g. MZC for MESHS)
-        date_dt (dt.datetime, optional): 
+        date_dt (dt.datetime, optional):
             Date (or time) of the observation in 'np_arr'. Defaults to None.
 
     Returns:
@@ -364,7 +364,7 @@ def prepare_gridded_radar_data_from_zip(
     """Returns the numpy ndarray of a gridded radar product for a given date
     and time. Currently supports 'dBZC','dLZC','dMZC','dCZC','BZC','EZC','MZC'
     'LZC','RZC','CZC','HZT', 'CPCH_5','CPCH_60' but more products can easily be added.
-    CPCH_60 & HZT will default to the minute 0 of the hour. 
+    CPCH_60 & HZT will default to the minute 0 of the hour.
     An input of 15.55 will return the value for the hour 15:00
     Product description is available in Confluence
     (https://service.meteoswiss.ch/confluence/display/CRS/Operational+Radar).
@@ -437,15 +437,22 @@ def prepare_gridded_radar_data_from_zip(
 
     #calculate E_kin according to waldvogel 1978, and Hohl (2002) (https://doi.org/10.1016/S0169-8095(02)00059-5)
     if product == 'E_kin':
-        #get Z from dBZ
-        Z = 10**(values/10)
-        #Z = Z0*10**(dBZ/10), with Z0=1mm6/m3
 
-        #set Z values <dBZ=55 to zero (according to Waldvogel 1980 paper)
-        Z[values<55]=0
 
-        # values=Z
-        values = 5e-6*Z**0.84 * 5 * 60
+        ###########Waldvogel 1978##################
+        # #get Z from dBZ
+        # Z = 10**(values/10)
+        # #Z = Z0*10**(dBZ/10), with Z0=1mm6/m3
+        # #set Z values <dBZ=55 to zero (according to Waldvogel 1980 paper)
+        # Z[values<55]=0
+        # values = 5e-6*Z**0.84 * 5 * 60 #Waldvogel 1978
+        # #E [J/m2/s] = 5e6*Z^0.84
+        # #E (5min sum) = E * 60*5
+        ###############Cecchini 2022#################
+        #get E_kin directly from reflectivity in dBZ
+        values = 10**(-6.72+0.114*values) *5 *60
+        #is equivalent to values = 1.905e-7*Z^1.14 *5 *60
+
         #E [J/m2/s] = 5e6*Z^0.84
         #E (5min sum) = E * 60*5
 
@@ -527,7 +534,7 @@ def save_multiple_radar_grids(
 
 
 def get_cpc_quality_code(product: str, timestamp: str) -> int:
-    """Returns the quality code which is stored in the filnames of the 
+    """Returns the quality code which is stored in the filnames of the
     CPCH_5 and CPCH_60 files
 
 

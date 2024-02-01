@@ -3,7 +3,7 @@
 #SBATCH --account="msrad"
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=timo.schmid@usys.ethz.ch
-#SBATCH --time=24:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=12
@@ -18,3 +18,4 @@ export CRAY_CUDA_MPS=1
 # source /store/msrad/utils/miniconda-tschmid/bin/activate
 # conda activate msrad
 python /users/tschmid/scClimCSCS/nc_from_metranet.py
+#Note: approx. XX hours per year
