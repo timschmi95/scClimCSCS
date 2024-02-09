@@ -14,7 +14,7 @@ username = 'tschmid' #os.getlogin()
 sys.path.append(f'/users/{username}/scClimCSCS')
 from get_archived_data import get_combined_max_radar_grid,get_netcdf
 
-years = np.arange(2023,2023+1)#[2020]#
+years = np.arange(2022,2022+1)#[2020]#
 start_month = 4 #4 (convective season April(4) to Sept(9))
 end_month = 9 #9
 end_day = 30 #30

@@ -18,4 +18,4 @@ export CRAY_CUDA_MPS=1
 # source /store/msrad/utils/miniconda-tschmid/bin/activate
 # conda activate msrad
 python /users/tschmid/scClimCSCS/nc_from_metranet.py
-#Note: approx. XX hours per year
+#Note: less than 30min for one year

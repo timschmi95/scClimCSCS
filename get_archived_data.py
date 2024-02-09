@@ -38,7 +38,7 @@ RADAR_PRODUCTS = {  # values are filename endings of products
     "LZC": ".+.801",
     "RZC": ".+.801",
     "CZC": ".+.801",
-    "HZT": ".+.800",
+    "HZT": ".+.800",        #HZERO: freezing level from COSMO
     "TRTC": ".+.trt",
     "YM": ".+.8",
     "ML": ".+.0",
@@ -48,6 +48,8 @@ RADAR_PRODUCTS = {  # values are filename endings of products
     "E_kin" : ".+.820" #E_kin, based on Waldvogel (1978), with CAPPI at 2km
     #Note: Waldvogel 1978 was originally calibrated to S-Band
 }
+#add specific product names for all reflectivity CAPPI's
+RADAR_PRODUCTS.update({f"OZC_h{km}": f".+.{800+km*10}" for km in np.arange(1,18+1)})
 
 
 projection_dict = {
@@ -305,6 +307,9 @@ def build_zip_file_paths(
 
     if product in ["CPCH_5", "CPCH_60"]:
         basic_product_name = "CPCH"
+
+    if "OZC_" in product:
+        basic_product_name = 'OZC'
 
     if product == 'E_kin':
         basic_product_name = "OZC" #CAPPI of Z
