@@ -102,7 +102,7 @@ def read_cpc_file(filepath: str, lut: str = "medium") -> np.ndarray:
     return image
 
 
-def get_netcdf(varname, date):
+def get_netcdf(varname, date,return_5min_data=False):
     """gets netcdf file for specific hailday (6UTC to 6UTC)
 
     Args:
@@ -116,16 +116,20 @@ def get_netcdf(varname, date):
     date_p_1 = date + datetime.timedelta(days=1)
     tstamp1 = date.strftime("%Y%m%d") + "060000"
     tstamp2 = date_p_1.strftime("%Y%m%d") + "060000"
-    if varname == 'E_kin':
-        #For E_kin sum up rather than use the maximum
-        npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2,agg_method='sum')
+    if return_5min_data:
+        npy_arr,tsteps = get_combined_max_radar_grid(varname, tstamp1, tstamp2,agg_method='all')
+        ds_out = npy_to_netcdf(npy_arr, varname, timesteps=tsteps)
     else:
-        npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2)
-    ds_out = npy_to_netcdf(npy_arr, varname, date)
+        if varname == 'E_kin':
+            #For E_kin sum up rather than use the maximum
+            npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2,agg_method='sum')
+        else:
+            npy_arr = get_combined_max_radar_grid(varname, tstamp1, tstamp2)
+        ds_out = npy_to_netcdf(npy_arr, varname, date)
     return ds_out
 
 
-def npy_to_netcdf(np_arr, varname, date_dt=None):
+def npy_to_netcdf(np_arr, varname, date_dt=None,timesteps=None):
     """convert np.ndarrays to netCDF datasets, based on the example
     file MCH_NC_EXAMPLE. The extent must be the MCH radardomain
     (710(chx) x 640(chy) gridpoints).
@@ -143,6 +147,7 @@ def npy_to_netcdf(np_arr, varname, date_dt=None):
             MCH metranet radarname (e.g. MZC for MESHS)
         date_dt (dt.datetime, optional):
             Date (or time) of the observation in 'np_arr'. Defaults to None.
+        timesteps (iterable): list of timesteps (same length as 3rd np_arr dimension)
 
     Returns:
         ds_out (xr.Dataset): xarray dataset of the numpy array
@@ -151,6 +156,10 @@ def npy_to_netcdf(np_arr, varname, date_dt=None):
     nc_filepath = str(MCH_NC_EXAMPLE)
     ncfile = xr.open_dataset(nc_filepath)
 
+    if timesteps is not None:
+        assert isinstance(np_arr, np.ndarray) #otherwise not implemented yet
+        assert np_arr.shape[2] == len(timesteps)
+
     if isinstance(np_arr, np.ndarray):  # if input is a ndarray object
         arr = np.flip(np_arr, axis=[0])
 
@@ -158,11 +167,18 @@ def npy_to_netcdf(np_arr, varname, date_dt=None):
         if varname in ["MZC", "meshs"]:
             arr = arr * 10
 
-        ds_out = xr.Dataset(
-            {varname: (("chy", "chx"), arr)}, coords=ncfile.coords
-        ).isel(time=0)
-        # Override time dimension with actual timestamp
-        ds_out["time"] = date_dt
+        if timesteps is None:
+            ds_out = xr.Dataset(
+                {varname: (("chy", "chx"), arr)}, coords=ncfile.coords
+            ).isel(time=0)
+            # Override time dimension with actual timestamp
+            ds_out["time"] = date_dt
+        else:
+            ncfile = ncfile.isel(time=0).expand_dims(time=timesteps)
+            ds_out = xr.Dataset(
+                {varname: (("chy", "chx","time"), arr)}, coords=ncfile.coords
+            )
+
 
     elif np_arr.endswith(".npy"):  # if input is a .npy file
         arr = np.flip(np.load(np_arr), axis=[0])
@@ -479,6 +495,7 @@ def get_combined_max_radar_grid(
         minutes=5
     )  # ensure starting at first timestep
     skipped_timesteps = 0
+    timesteps = []
     while temp_date < end_date:
         temp_date += datetime.timedelta(minutes=5)
         try:
@@ -490,11 +507,16 @@ def get_combined_max_radar_grid(
                     grid = np.maximum(grid,grid_new)
                 elif agg_method == 'sum':
                     grid = np.add(grid,grid_new)
+                elif agg_method == 'all':
+                    grid = np.dstack((grid,grid_new))
+                    timesteps.append(temp_date)
             else:
                 grid = prepare_gridded_radar_data_from_zip(
                     product=product,
                     timestamp=datetime.datetime.strftime(temp_date, "%Y%m%d%H%M%S"),
                 )
+                if agg_method == 'all':
+                    timesteps.append(temp_date)
 
         except (AttributeError, FileNotFoundError) as err:
             # AttributeError: 'NoneType' object has no attribute 'data' ():
@@ -511,6 +533,8 @@ def get_combined_max_radar_grid(
                     f"{temp_date}: number of skipped steps is >10. return empty array for this date"
                 )
                 break
+    if agg_method == 'all':
+        return grid, timesteps
     return grid
 
 
